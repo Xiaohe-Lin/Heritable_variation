@@ -1,6 +1,5 @@
 # This repository contains data and codes related to 
 
-***
 
 Lin et al. 2023. Environment-induced heritable variation is common.
 
@@ -18,7 +17,6 @@ Lin et al. 2023. Environment-induced heritable variation is common.
   
 # Contacts
 
-***
 
 Please direct comments to the issues page or linxiaohe2021@163.com
 
