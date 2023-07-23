@@ -42,7 +42,7 @@ perform_test <- function(matr, generations,  file_prefix){
 }
 
 # Read and prepare data
-matr1 <- read_and_prepare_data("~/Documents/project/transgenerational/finalized/data/TestI.csv")
+matr1 <- read_and_prepare_data("data/TestI.csv")
 perform_test(matr1, c("F1", "F2", "F3", "F4", "Anc"), "TestI")
 
 

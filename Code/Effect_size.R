@@ -5,7 +5,7 @@ library(car)
 library(lmerTest)
 
 #----data prepare-----
-matr1<-read.csv("~/Documents/project/transgenerational/finalized/data/TestI.csv",header=T)
+matr1<-read.csv("data/TestI.csv",header=T)
 colnames(matr1)
 table(matr1$Generation)
 matr1<-matr1[which(matr1$rm==FALSE),]
