@@ -5,7 +5,7 @@ library(car)
 library(multcomp)
 
 # Read the effect size data from a CSV file
-ef.size <- read.csv('data/effect.size.csv', header = TRUE)
+ef.size <- read.csv('data/TestI_effect.size.csv', header = TRUE)
 
 # Check the frequency distribution of categorical variables
 table(ef.size$ecotype)

@@ -5,7 +5,7 @@ library(car)
 library(lmerTest)
 
 #----data prepare-----
-matr1<-read.csv("data/TestI.csv",header=T)
+matr1<-read.csv("data/TestI_raw.csv",header=T)
 colnames(matr1)
 table(matr1$Generation)
 matr1<-matr1[which(matr1$rm==FALSE),]
@@ -145,4 +145,4 @@ for (treat in c("actr1")){
   }
 }
 
-write.csv(aa,"Test I_all_eff.csv")
+write.csv(aa,"TestI_effect.size.csv")
