@@ -3,6 +3,7 @@ library(lme4)
 library(lmtest)
 library(car)
 library(multcomp)
+library(reshape2)
 
 # Read the effect size data from a CSV file
 ef.size <- read.csv('data/TestI_effect.size.csv', header = TRUE)
