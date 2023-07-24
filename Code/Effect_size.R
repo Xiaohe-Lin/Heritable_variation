@@ -6,13 +6,12 @@ matr<-matr[which(matr$rm==FALSE),]
 matr$P.layer<-factor(matr$P.layer)
 matr$layer<-factor(matr$layer)
 
-matr <- matr1
 ##-------ef.size-----------------
 aa<-matrix(ncol=8)
 for (treat in c("Drought","Salt1","Salt2","Cd1","Cd2","Nutrient1","Nutrient2",
                 "Leaf")){
   matr.sub<-matr[matr$treat.1=="actr"|matr$treat.1==treat,]
-  for (gen in c("F1.1","F2","F3","F4")){
+  for (gen in c("F1","F2","F3","F4")){
     matr.sub.gen<-matr.sub[matr.sub$Generation==gen,]
     print(gen)
     for (trait in c("flt","height","diam","biomass","fruit")){
@@ -32,7 +31,7 @@ for (treat in c("Drought","Salt1","Salt2","Cd1","Cd2","Nutrient1","Nutrient2",
 for (treat in c("JA")){
   matr.sub<-matr[matr$treat.1=="JActr"|matr$treat.1==treat,]
   matr.sub$treat.1 <- relevel(factor(matr.sub$treat.1), ref="JActr")
-  for (gen in c("F1.1","F2","F3","F4")){
+  for (gen in c("F1","F2","F3","F4")){
     matr.sub.gen<-matr.sub[matr.sub$Generation==gen,]
     print(gen)
     for (trait in c("flt","height","diam","biomass","fruit")){
@@ -51,7 +50,7 @@ for (treat in c("JA")){
 
 for (treat in c("actr1")){
   matr.sub<-matr[matr$treat=="actr2"|matr$treat==treat,]
-  for (gen in c("F1.1","F2","F3","F4")){
+  for (gen in c("F1","F2","F3","F4")){
     matr.sub.gen<-matr.sub[matr.sub$Generation==gen,]
     print(gen)
     for (trait in c("flt","height","diam","biomass","fruit")){
