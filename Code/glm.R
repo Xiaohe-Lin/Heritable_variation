@@ -6,7 +6,7 @@ library(multcomp)
 library(reshape2)
 
 # Read the effect size data from a CSV file
-ef.size <- read.csv('data/TestI_effect.size.csv', header = TRUE)
+ef.size <- read.csv('TestI_effect.size.csv', header = TRUE)
 
 # Check the frequency distribution of categorical variables
 table(ef.size$ecotype)
@@ -14,20 +14,16 @@ table(ef.size$treat)
 table(ef.size$gen)
 table(ef.size$trait)
 
-# Rename the "F1.1" level to "F1" in the 'gen' column
-ef.size$gen <- gsub('F1.1', 'F1', ef.size$gen)
-
 # Replace some ecotype names for better readability
 ef.size <- ef.size %>%
   mutate(ecotype = str_replace_all(ecotype, c('aaCol-0'='Col-0', 'Ang-1'='Ang-0', 'Olympia-0'='Oly-2')))
 
 # Create a binary variable indicating whether Pvalue < 0.05
 ef.size$value_sig <- ifelse(ef.size$Pvalue < 0.05, 1, 0)
-
+ef.size <- ef.size[ef.size$treat!='actr1',]
 # Create a new dataset with selected columns
 d1 <- ef.size[, c(1:4, 10)]
 d1$value_sig <- as.numeric(d1$value_sig)
-
 # Reshape the data to wide format using 'dcast' and then back to long format using 'melt'
 d2 <- d1 |> 
   dcast(ecotype + treat + gen ~ trait, value.var = 'value_sig')

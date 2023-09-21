@@ -64,84 +64,41 @@ for (i in ecotype) {
   Drought <- get(paste0(i,'.Drought'))
   gene.list = list(Cd1 = Cd1, Cd2 = Cd2, Drought = Drought)  
   gene.GO <- compareCluster(gene.list, fun="enrichGO",ont = "BP", OrgDb = "org.At.tair.db",
-                            keyType = "TAIR", pvalueCutoff=0.05,pAdjustMethod = "BH",qvalueCutoff = 1) 
+                            keyType = "TAIR", pvalueCutoff=1,pAdjustMethod = "BH",qvalueCutoff = 1) 
   gene.GO.cluster <- clusterProfiler::simplify(gene.GO,cutoff=0.7,by='pvalue',select_fun=min)
   gene.GO.filter <- gene.GO.cluster[gene.GO.cluster@compareClusterResult$pvalue<0.05,]
   write.csv(gene.GO.filter,file = paste0('GO/',i,'GO.union.csv'))  
 }
 
-
-
-# 3. Obtaining top 15 GO terms ----
-setwd('~/Documents/project/TE_RNAseq/')
-ecotype <- c('Abd','Ang','Tol','TRE')
-treatment <- c('Cd1','Cd2','Drought')
-res <- c()
-for (i in ecotype) {
-  df <- read.csv(paste0('GO/',i,'GO.union.csv'),header=T,row.names = 1) 
-  df$ecotype <- i
-  for (j in treatment) {
-    sub <- subset(df,Cluster==j,)
-    sub <- subset(sub,Count>5,)
-    sub1 <- sub[order(sub$pvalue),][1:15,]
-    sub1 <- na.omit(sub1)
-    res <- rbind(res,sub1)
-  }
-}
-
-res.des <- unique(res$Description)
-res1 <- c()
-for (i in ecotype) {
-  df <- read.csv(paste0('GO/',i,'GO.union.csv'),header=T,row.names = 1) 
-  df$ecotype <- i
-  for (j in treatment) {
-    sub <- subset(df,Cluster==j,)
-    sub1 <- sub[sub$Description %in% res.des,]
-    res1 <- rbind(res1,sub1)
-  }
-}
-
-# 4. Obtaining overlapping GO terms and gene ----
-res1$set <- paste(res1$ecotype,res1$Cluster,sep = '_')
-go.overlap <- unique(res1$Description[duplicated(res1$Description)]) # Extract overlapping GO terms
-res2 <- res1[res1$Description%in% go.overlap,]
-prepare.go <- function(df) {
-  go_gene <- df %>%
-    select(Gene = geneID, ID) %>%
-    na.omit() %>%
-    separate(Gene, paste0("X", 1:(max(stringr::str_count(.$Gene,"\\/"))+1)), sep = "\\/") %>%
-    gather(key = "X", value = "Gene", -ID) %>%
-    select(Gene, ID) %>%
-    na.omit() %>%
-    distinct(.keep_all = TRUE)
-  go_gene.1 <- dplyr::left_join(go_gene, df, by = 'ID')
-  return(go_gene.1)
-}
-
-
-df_all <- c()
-ecotype <- c('Abd','Ang','Tol','TRE')
-treatment <- c('Cd1','Cd2','Drought')
-for (i in ecotype) {
-  for (j in treatment) {
-    df <- res2[res2$ecotype==i&res2$Cluster==j,]
-    df1 <- prepare.kegg(df)
-    df_all <- rbind(dff_all,df1)
-  }
-}
-
-df1 <- df_all[,c(1,13)]
-df_unique <- df1 %>%
-  group_by(set) %>%
-  distinct(Gene)  %>%
-  group_by(Gene) %>%
-  summarise(num=n()) %>%
-  filter(num>1)
-
-# 4. Transposable element sampling ----
+# 3. Transposable element sampling ----
 library(GenomicRanges)
 library(grid)
 library(patchwork)
+
+# Obtainning heritable DEGs
+ecotype <- c('Abd','Ang','Tol','TRE')
+generation <- c('F1','F2','F3','F4')
+treatment <- c('Cd1','Cd2','Drought')
+DEG.all <- c()
+for (i in ecotype) {
+  for (j in generation) {
+    for (k in treatment) {
+      a <- read.csv(paste0(i,'/DEG/',i,'.',j,'.',k,'.remove.csv'),header=T)
+      a$ecotype <- i
+      a$Generation <- j
+      a$treatment <- k
+      DEG.all <- rbind(DEG.all,a)
+    }
+  }
+}
+
+heritable_DEG <- DEG.all %>%
+  group_by(ecotype, treatment, X) %>%
+  summarise(DEG_number = n()) %>%
+  filter(DEG_number>1) 
+
+heritable_overlap_DEGs <- as.data.frame(table(heritable_DEG$X))
+heritable_overlap_DEGs <- heritable_overlap_DEGs[heritable_overlap_DEGs$Freq>1,]
 
 # Read and preprocess TE classification data
 TE.anno <- read.table('TAIR10_Transposable_Elements.txt',header = T)
@@ -178,9 +135,9 @@ rm(arab.gff)
 rm(arab.gene.gff)
 
 #  Data subset selection
-data.subset.uniq <- unique(df_unique$Gene)
-length(data.subset.uniq)
-gr.data <- gr.gene[gr.gene$attributes %in% data.subset.uniq,]
+heritable_overlap_DEGs.uniq <- unique(heritable_overlap_DEGs$Var1)
+length(heritable_overlap_DEGs.uniq)
+gr.data <- gr.gene[gr.gene$attributes %in% heritable_overlap_DEGs.uniq,]
 gr.data.anno.TE <- findOverlaps(gr.data,gr.TE)
 gr.data.TE.sub <- data.frame(gr.TE[gr.data.anno.TE@to,])
 gr.data.TE.sub <- gr.data.TE.sub[,c(1:5,7,10)]
@@ -189,6 +146,7 @@ TE.sub <- left_join(gr.data.TE.sub,TE.anno,by=colnames(TE.anno)[1])
 TE.sub.1 <- data.frame(table(TE.sub$Transposon_Super_Family))
 TE.sub.1 <- left_join(TE.1,TE.sub.1,by='Var1')
 TE.sub.1[is.na(TE.sub.1)] <- 0
+
 
 # Extracting genes with expression levels in treatments of low cadmium 
 df_all <- c()
@@ -213,7 +171,7 @@ rm(df.stat)
 # Gene sampling and TE analysis
 TE.result <- c()
 for (i in 1:10000) {
-  gene.sub <- sample(gene.all,size = 715)
+  gene.sub <- sample(gene.all,size = 2669)
   gr.data <- gr.gene[gr.gene$attributes %in% gene.sub,]
   gr.data.anno.TE <- findOverlaps(gr.data,gr.TE)
   gr.data.TE.sub <- data.frame(gr.TE[gr.data.anno.TE@to,])
@@ -235,26 +193,22 @@ TE.var <- TE.result$Var1
 TE.var==TE.sub.1$Var1
 
 # Calculation of probability
-for (i in 1:length(TE.var)) {
-  sn <- TE.var[i]
-  s1 <- as.data.frame(as.numeric(TE.result[i,2:10001]))
+for (i in TE.var) {
+  df <- TE.result[TE.result$Var1 == i,]
+  s1 <- as.data.frame(as.numeric(df[1,2:10001]))
+  head(s1)
   colnames(s1) <- 'a'
-  observed.value <- TE.sub.1[i,2]
+  observed.value <- TE.sub.1[TE.sub.1$Var1==i,2]
   s2 <- s1[s1$a > observed.value,]
   pvalue <- length(s2)/10000
-  grob <- grobTree(textGrob(paste0('Plarge = ',pvalue),
+  grob <- grobTree(textGrob(paste0('P = ',pvalue),
                             x=0.6,y=0.9, hjust=0,
                             gp=gpar(col="black", fontsize=8)))
-  quant <- quantile(s1$a,c(0.05,0.95),na.rm=T)
-  quant2 <- quantile(s1$a,c(0.01,0.99),na.rm=T)
-  quant3 <- quantile(s1$a,c(0.1,0.9),na.rm=T)
-  assign(paste0('p_',sn),ggplot(data = s1,aes(x=a))+
-           geom_histogram(aes(y=..density..),binwidth = 1)+
-           geom_density(aes(y=..density..),bw = 1)+
+  assign(paste0('p_',i),ggplot(data = s1,aes(x=a))+
+           geom_density(aes(y=..density..),bw = 1,linetype=2,color='black',fill='#fcaf7c',alpha=0.8,size=1.2)+
+           coord_cartesian(xlim=c(0,NA))+
            annotation_custom(grob)+
-           geom_vline(xintercept = as.numeric(TE.sub.1[i,2]),color='blue')+
-           xlab(sn)+
+           geom_vline(xintercept = as.numeric(observed.value),color='#04686b')+
+           xlab(i)+
            theme_test())
 }
-
-`p_LTR/Gypsy`+`p_LTR/Copia`+p_LINE+p_SINE+`p_DNA/En-Spm`+`p_DNA/Harbinger`+`p_DNA/HAT`+`p_DNA/Mariner`+`p_DNA/MuDR`+`p_DNA/Pogo`+`p_DNA/Tc1`+`p_RC/Helitron`
